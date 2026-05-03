@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="id" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Efek Fotolistrik Interaktif</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Nunito', sans-serif; box-sizing: border-box; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    @keyframes photonMove {
+      0% { transform: translateX(-60px); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateX(0px); opacity: 0.3; }
+    }
+    @keyframes electronEscape {
+      0% { transform: translate(0,0); opacity: 1; }
+      100% { transform: translate(var(--ex), var(--ey)); opacity: 0; }
+    }
+    @keyframes electronWiggle {
+      0%,100% { transform: translate(0,0); }
+      25% { transform: translate(2px,-2px); }
+      75% { transform: translate(-2px,2px); }
+    }
+    @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+
+    .photon-beam {
+      animation: photonMove 1.2s linear infinite;
+    }
+    .electron-escape {
+      animation: electronEscape 1s ease-out forwards;
+    }
+    .electron-wiggle {
+      animation: electronWiggle 0.3s ease-in-out infinite;
+    }
+    .pulse-glow { animation: pulse 2s ease-in-out infinite; }
+
+    .slider-track::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+      cursor: pointer; border: 2px solid #fff;
+    }
+    .slider-track::-moz-range-thumb {
+      width: 20px; height: 20px; border-radius: 50%;
+      cursor: pointer; border: 2px solid #fff;
+    }
+    .slider-track { -webkit-appearance: none; height: 6px; border-radius: 3px; outline: none; }
+
+    .card-glass {
+      background: rgba(15,23,42,0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(100,116,139,0.3);
+    }
+  </style>
+ </head>
+ <body class="h-full overflow-auto" style="background: #0a0e1a;">
+  <div id="app" class="w-full min-h-full" style="background: linear-gradient(135deg, #0a0e1a 0%, #111827 40%, #0f172a 100%);">
+   <header class="text-center py-5 px-4">
+    <h1 id="mainTitle" class="text-3xl md:text-4xl font-extrabold" style="color:#38bdf8;">Efek Fotolistrik</h1>
+    <p class="mt-1 text-sm" style="color:#94a3b8;">Simulasi interaktif — geser slider untuk mengeksplorasi!</p>
+   </header>
+   <div class="max-w-7xl mx-auto px-4 pb-10 grid grid-cols-1 lg:grid-cols-3 gap-5">
+    
+    <div class="space-y-4">
+     <div class="card-glass rounded-xl p-4"><label class="flex items-center gap-2 text-sm font-bold" style="color:#38bdf8;"> <i data-lucide="waves" style="width:16px;height:16px;"></i> Frekuensi Cahaya (f) </label> <input id="freqSlider" type="range" min="3" max="12" step="0.1" value="6" class="slider-track w-full mt-2" style="background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e,#3b82f6,#8b5cf6);">
+      <div class="flex justify-between mt-1"><span id="freqVal" class="mono text-xs" style="color:#e2e8f0;">6.0 × 10¹⁴ Hz</span> <span id="freqColor" class="text-xs" style="color:#94a3b8;">Hijau</span>
+      </div>
+      <div id="wavelengthBar" class="h-2 rounded mt-2" style="background:#22c55e;"></div>
+     </div>
+     
+     <div class="card-glass rounded-xl p-4"><label class="flex items-center gap-2 text-sm font-bold" style="color:#38bdf8;"> <i data-lucide="sun" style="width:16px;height:16px;"></i> Intensitas Cahaya </label> <input id="intSlider" type="range" min="1" max="10" step="1" value="5" class="slider-track w-full mt-2" style="background:linear-gradient(90deg,#334155,#fbbf24);"> <span id="intVal" class="mono text-xs" style="color:#e2e8f0;">5 foton/detik</span>
+     </div>
+     
+     <div class="card-glass rounded-xl p-4"><label class="flex items-center gap-2 text-sm font-bold" style="color:#38bdf8;"> <i data-lucide="shield" style="width:16px;height:16px;"></i> Fungsi Kerja (φ) </label> <input id="wfSlider" type="range" min="1" max="5" step="0.1" value="2.5" class="slider-track w-full mt-2" style="background:linear-gradient(90deg,#065f46,#f59e0b);">
+      <div class="flex justify-between mt-1"><span id="wfVal" class="mono text-xs" style="color:#e2e8f0;">2.50 eV</span> <span id="metalName" class="text-xs" style="color:#94a3b8;">≈ Natrium</span>
+      </div>
+     </div>
+     
+     <button id="playBtn" class="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all" style="background:#38bdf8;color:#0a0e1a;"> <i data-lucide="pause" style="width:16px;height:16px;" id="playIcon"></i> <span id="playLabel">Jeda Animasi</span> </button> 
+     
+     <div id="statusBox" class="card-glass rounded-xl p-4 text-center">
+      <div id="statusIcon" class="text-4xl mb-1">⚡</div>
+      <div id="statusText" class="font-bold text-sm" style="color:#22c55e;">Elektron Terlepas!</div>
+      <div id="keText" class="mono text-xs mt-1" style="color:#e2e8f0;">KE<sub>maks</sub> = 0.00 eV</div>
+      <div id="threshText" class="text-xs mt-1" style="color:#94a3b8;">f₀ = 0.00 × 10¹⁴ Hz</div>
+     </div>
+    </div>
+    
+    <div class="card-glass rounded-xl p-3 flex flex-col items-center justify-center" style="min-height:380px;">
+     <svg id="simSvg" viewBox="0 0 400 320" class="w-full" style="max-width:400px;">
+      <circle id="lightSource" cx="50" cy="100" r="22" fill="#22c55e" opacity="0.8" /> 
+      <text x="50" y="105" text-anchor="middle" fill="#0a0e1a" font-size="11" font-weight="700">hf</text> 
+      <g id="photonBeams"></g> 
+      <rect x="220" y="40" width="60" height="240" rx="8" fill="#334155" stroke="#475569" stroke-width="2" /> 
+      <text x="250" y="170" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600" transform="rotate(-90,250,170)">LOGAM</text> 
+      <g id="surfaceElectrons"></g> 
+      <g id="escapedElectrons"></g> 
+      <rect x="340" y="40" width="16" height="240" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1" /> 
+      <rect id="energyBar" x="342" y="280" width="12" height="0" rx="3" fill="#38bdf8" /> 
+      <text x="348" y="35" text-anchor="middle" fill="#94a3b8" font-size="8">E</text> 
+      <line id="threshLine" x1="338" y1="200" x2="358" y2="200" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,2" /> 
+      <text id="threshLabel" x="360" y="203" fill="#ef4444" font-size="7">φ</text>
+     </svg>
+     <p class="text-xs mt-1 text-center" style="color:#64748b;">Foton (kiri) → Logam (tengah) → Elektron (kanan)</p>
+    </div>
+    
+    <div class="space-y-4">
+     <div class="card-glass rounded-xl p-4">
+      <h3 class="text-sm font-bold mb-2" style="color:#38bdf8;">📈 KE<sub>maks</sub> vs Frekuensi</h3>
+      <svg id="graphSvg" viewBox="0 0 280 200" class="w-full">
+       <line x1="40" y1="170" x2="270" y2="170" stroke="#475569" stroke-width="1" /> 
+       <line x1="40" y1="10" x2="40" y2="170" stroke="#475569" stroke-width="1" /> 
+       <text x="155" y="195" text-anchor="middle" fill="#94a3b8" font-size="9">f (×10¹⁴ Hz)</text> 
+       <text x="12" y="90" fill="#94a3b8" font-size="9" transform="rotate(-90,12,90)">KE (eV)</text> 
+       <g id="graphTicks"></g> 
+       <line id="keLine" x1="40" y1="170" x2="270" y2="10" stroke="#38bdf8" stroke-width="2" /> 
+       <circle id="threshDot" cx="100" cy="170" r="5" fill="#ef4444" /> 
+       <text id="threshDotLabel" x="100" y="185" text-anchor="middle" fill="#ef4444" font-size="8">f₀</text> 
+       <circle id="currentDot" cx="150" cy="100" r="6" fill="#fbbf24" stroke="#fff" stroke-width="1.5" /> 
+       <rect id="noEmitZone" x="40" y="10" width="60" height="160" fill="#ef4444" opacity="0.08" />
+      </svg>
+     </div>
+     
+     <div class="card-glass rounded-xl p-4">
+      <h3 id="analogyTitle" class="text-sm font-bold mb-2" style="color:#fbbf24;">💡 Analogi Sederhana</h3>
+      <p class="text-xs leading-relaxed" style="color:#cbd5e1;">Bayangkan sebuah <strong style="color:#fbbf24;">bola di dalam lubang</strong>. Bola hanya bisa keluar jika mendapat <strong style="color:#38bdf8;">satu tendangan</strong> yang cukup kuat (frekuensi tinggi).</p>
+      <p class="text-xs leading-relaxed mt-2" style="color:#cbd5e1;"><strong style="color:#ef4444;">100 tendangan lemah</strong> (intensitas tinggi, frekuensi rendah) <strong>tidak akan</strong> mengeluarkan bola — energi tidak menumpuk!</p>
+      <p class="text-xs leading-relaxed mt-2" style="color:#cbd5e1;"><strong style="color:#22c55e;">1 tendangan kuat</strong> (frekuensi tinggi) sudah cukup. Lebih banyak tendangan kuat = lebih banyak bola keluar, tapi kecepatan tiap bola sama.</p>
+      <div class="mt-3 p-2 rounded-lg text-xs text-center font-bold" style="background:rgba(56,189,248,0.1);color:#38bdf8;">
+       KE<sub>maks</sub> = hf − φ &nbsp;(Einstein, 1905)
+      </div>
+     </div>
+     
+     <div id="insightBox" class="card-glass rounded-xl p-4">
+      <h3 class="text-sm font-bold mb-1" style="color:#a78bfa;">🔑 Insight Utama</h3>
+      <p id="insightText" class="text-xs leading-relaxed" style="color:#cbd5e1;">Geser slider frekuensi dan intensitas untuk melihat perbedaannya!</p>
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <script>
+    // Constants
+    const h = 6.626e-34; // Planck's constant
+    const eV = 1.602e-19; // electron volt in joules
+    const hEv = 4.136e-15; // h in eV·s
+
+    // State
+    let freq = 6, intensity = 5, workFunc = 2.5;
+    let playing = true;
+    let photonTimers = [];
+
+    // DOM refs
+    const freqSlider = document.getElementById('freqSlider');
+    const intSlider = document.getElementById('intSlider');
+    const wfSlider = document.getElementById('wfSlider');
+    const freqVal = document.getElementById('freqVal');
+    const intVal = document.getElementById('intVal');
+    const wfVal = document.getElementById('wfVal');
+    const freqColor = document.getElementById('freqColor');
+    const metalName = document.getElementById('metalName');
+    const wavelengthBar = document.getElementById('wavelengthBar');
+    const statusText = document.getElementById('statusText');
+    const statusIcon = document.getElementById('statusIcon');
+    const keText = document.getElementById('keText');
+    const threshText = document.getElementById('threshText');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const playLabel = document.getElementById('playLabel');
+    const insightText = document.getElementById('insightText');
+
+    // Frequency to color mapping
+    function freqToColor(f) {
+      if (f < 4.3) return { color: '#ef4444', name: 'Inframerah', css: '#ef4444' };
+      if (f < 5.0) return { color: '#ef4444', name: 'Merah', css: '#ef4444' };
+      if (f < 5.3) return { color: '#f97316', name: 'Jingga', css: '#f97316' };
+      if (f < 5.8) return { color: '#eab308', name: 'Kuning', css: '#eab308' };
+      if (f < 6.2) return { color: '#22c55e', name: 'Hijau', css: '#22c55e' };
+      if (f < 6.7) return { color: '#06b6d4', name: 'Cyan', css: '#06b6d4' };
+      if (f < 7.5) return { color: '#3b82f6', name: 'Biru', css: '#3b82f6' };
+      if (f < 8.0) return { color: '#8b5cf6', name: 'Violet', css: '#8b5cf6' };
+      return { color: '#a855f7', name: 'Ultraviolet', css: '#c084fc' };
+    }
+
+    function metalForWF(w) {
+      if (w < 1.5) return 'Cesium';
+      if (w < 2.0) return 'Kalium';
+      if (w < 2.8) return 'Natrium';
+      if (w < 3.5) return 'Kalsium';
+      if (w < 4.3) return 'Tembaga';
+      return 'Platinum';
+    }
+
+    function computePhysics() {
+      const photonEnergy = hEv * freq * 1e14; // eV
+      const threshFreq = workFunc / hEv / 1e14; // ×10¹⁴ Hz
+      const ke = Math.max(0, photonEnergy - workFunc);
+      const emitting = photonEnergy >= workFunc;
+      return { photonEnergy, threshFreq, ke, emitting };
+    }
+
+    // Update UI
+    function updateUI() {
+      const fc = freqToColor(freq);
+      const physics = computePhysics();
+
+      freqVal.textContent = `${freq.toFixed(1)} × 10¹⁴ Hz`;
+      freqColor.textContent = fc.name;
+      wavelengthBar.style.background = fc.css;
+      intVal.textContent = `${intensity} foton/detik`;
+      wfVal.textContent = `${workFunc.toFixed(2)} eV`;
+      metalName.textContent = `≈ ${metalForWF(workFunc)}`;
+
+      // Light source color
+      document.getElementById('lightSource').setAttribute('fill', fc.css);
+
+      // Status
+      if (physics.emitting) {
+        statusIcon.textContent = '⚡';
+        statusText.textContent = 'Elektron Terlepas!';
+        statusText.style.color = '#22c55e';
+        keText.innerHTML = `KE<sub>maks</sub> = ${physics.ke.toFixed(2)} eV`;
+        insightText.innerHTML = `Energi foton <strong style="color:#38bdf8;">${physics.photonEnergy.toFixed(2)} eV</strong> > fungsi kerja <strong style="color:#fbbf24;">${workFunc.toFixed(2)} eV</strong>. Elektron terlepas dengan KE = ${physics.ke.toFixed(2)} eV. Coba naikkan intensitas — jumlah elektron bertambah tapi KE tetap sama!`;
+      } else {
+        statusIcon.textContent = '🚫';
+        statusText.textContent = 'Tidak Ada Emisi';
+        statusText.style.color = '#ef4444';
+        keText.innerHTML = `KE<sub>maks</sub> = 0 eV`;
+        insightText.innerHTML = `Energi foton <strong style="color:#38bdf8;">${physics.photonEnergy.toFixed(2)} eV</strong> &lt; fungsi kerja <strong style="color:#fbbf24;">${workFunc.toFixed(2)} eV</strong>. Meskipun intensitas tinggi, elektron tidak punya cukup energi untuk lepas. Naikkan frekuensi!`;
+      }
+      threshText.innerHTML = `f₀ = ${physics.threshFreq.toFixed(2)} × 10¹⁴ Hz`;
+
+      // Energy bar in SVG
+      const maxE = 6;
+      const barMaxH = 240;
+      const eBarH = Math.min(barMaxH, (physics.photonEnergy / maxE) * barMaxH);
+      const energyBar = document.getElementById('energyBar');
+      energyBar.setAttribute('y', 280 - eBarH);
+      energyBar.setAttribute('height', eBarH);
+      energyBar.setAttribute('fill', physics.emitting ? '#22c55e' : fc.css);
+
+      // Threshold line
+      const threshY = 280 - (workFunc / maxE) * barMaxH;
+      document.getElementById('threshLine').setAttribute('y1', threshY);
+      document.getElementById('threshLine').setAttribute('y2', threshY);
+      document.getElementById('threshLabel').setAttribute('y', threshY + 3);
+
+      // Surface electrons wiggle
+      updateSurfaceElectrons(physics.emitting);
+
+      // Update graph
+      updateGraph(physics);
+    }
+
+    function updateSurfaceElectrons(emitting) {
+      const g = document.getElementById('surfaceElectrons');
+      if (!g.hasChildNodes()) {
+        for (let i = 0; i < 6; i++) {
+          const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          c.setAttribute('cx', 225 + Math.random()*50);
+          c.setAttribute('cy', 60 + i * 40);
+          c.setAttribute('r', 4);
+          c.setAttribute('fill', '#fbbf24');
+          g.appendChild(c);
+        }
+      }
+      g.querySelectorAll('circle').forEach(c => {
+        c.setAttribute('class', emitting && playing ? 'electron-wiggle' : '');
+      });
+    }
+
+    function updateGraph(physics) {
+      const gx = 40, gy = 170, gw = 230, gh = 160;
+      const fMin = 3, fMax = 12, keMax = 5;
+
+      // Ticks
+      const ticksG = document.getElementById('graphTicks');
+      ticksG.innerHTML = '';
+      for (let f = 4; f <= 12; f += 2) {
+        const x = gx + ((f - fMin)/(fMax - fMin)) * gw;
+        const tick = document.createElementNS('http://www.w3.org/2000/svg','text');
+        tick.setAttribute('x', x); tick.setAttribute('y', gy + 14);
+        tick.setAttribute('text-anchor','middle'); tick.setAttribute('fill','#64748b');
+        tick.setAttribute('font-size','8'); tick.textContent = f;
+        ticksG.appendChild(tick);
+      }
+      for (let k = 0; k <= 4; k += 1) {
+        const y = gy - (k / keMax) * gh;
+        const tick = document.createElementNS('http://www.w3.org/2000/svg','text');
+        tick.setAttribute('x', gx - 5); tick.setAttribute('y', y + 3);
+        tick.setAttribute('text-anchor','end'); tick.setAttribute('fill','#64748b');
+        tick.setAttribute('font-size','8'); tick.textContent = k;
+        ticksG.appendChild(tick);
+      }
+
+      // KE line
+      const threshF = physics.threshFreq;
+      const x0 = gx + ((threshF - fMin)/(fMax - fMin)) * gw;
+      const keAtMax = hEv * fMax * 1e14 - workFunc;
+      const y1 = gy - (Math.max(0,keAtMax) / keMax) * gh;
+      const keLine = document.getElementById('keLine');
+      keLine.setAttribute('x1', Math.max(gx, x0)); keLine.setAttribute('y1', gy);
+      keLine.setAttribute('x2', gx + gw); keLine.setAttribute('y2', Math.max(gy - gh, y1));
+
+      // Threshold dot
+      const threshDot = document.getElementById('threshDot');
+      threshDot.setAttribute('cx', Math.max(gx, x0)); threshDot.setAttribute('cy', gy);
+      document.getElementById('threshDotLabel').setAttribute('x', Math.max(gx, x0));
+
+      // No-emit zone
+      const noEmitZone = document.getElementById('noEmitZone');
+      noEmitZone.setAttribute('x', gx); noEmitZone.setAttribute('y', gy - gh);
+      noEmitZone.setAttribute('width', Math.max(0, x0 - gx)); noEmitZone.setAttribute('height', gh);
+
+      // Current point
+      const curX = gx + ((freq - fMin)/(fMax - fMin)) * gw;
+      const curY = gy - (physics.ke / keMax) * gh;
+      const currentDot = document.getElementById('currentDot');
+      currentDot.setAttribute('cx', curX);
+      currentDot.setAttribute('cy', Math.max(gy - gh, curY));
+    }
+
+    // Photon animation
+    function spawnPhoton() {
+      if (!playing) return;
+      const fc = freqToColor(freq);
+      const physics = computePhysics();
+      const g = document.getElementById('photonBeams');
+      const yPos = 60 + Math.random() * 200;
+
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', 220); c.setAttribute('cy', yPos);
+      c.setAttribute('r', 5); c.setAttribute('fill', fc.css); c.setAttribute('opacity','0.9');
+      c.setAttribute('class','photon-beam');
+      g.appendChild(c);
+
+      setTimeout(() => {
+        c.remove();
+        if (physics.emitting && playing) spawnElectron(yPos, physics.ke);
+      }, 1200);
+    }
+
+    function spawnElectron(y, ke) {
+      const g = document.getElementById('escapedElectrons');
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      const speed = 30 + ke * 30;
+      c.setAttribute('cx', 285); c.setAttribute('cy', y);
+      c.setAttribute('r', 3); c.setAttribute('fill', '#fbbf24');
+      c.style.setProperty('--ex', `${speed}px`);
+      c.style.setProperty('--ey', `${-20 + Math.random()*40}px`);
+      c.setAttribute('class','electron-escape');
+      g.appendChild(c);
+      setTimeout(() => c.remove(), 1000);
+    }
+
+    function startPhotonLoop() {
+      photonTimers.forEach(clearInterval);
+      photonTimers = [];
+      if (!playing) return;
+      const interval = Math.max(100, 1200 / intensity);
+      photonTimers.push(setInterval(spawnPhoton, interval));
+    }
+
+    // Event listeners
+    freqSlider.addEventListener('input', e => { freq = parseFloat(e.target.value); updateUI(); });
+    intSlider.addEventListener('input', e => { intensity = parseInt(e.target.value); updateUI(); startPhotonLoop(); });
+    wfSlider.addEventListener('input', e => { workFunc = parseFloat(e.target.value); updateUI(); });
+
+    playBtn.addEventListener('click', () => {
+      playing = !playing;
+      playIcon.setAttribute('data-lucide', playing ? 'pause' : 'play');
+      playLabel.textContent = playing ? 'Jeda Animasi' : 'Putar Animasi';
+      lucide.createIcons();
+      startPhotonLoop();
+      if (!playing) {
+        document.getElementById('photonBeams').innerHTML = '';
+        document.getElementById('escapedElectrons').innerHTML = '';
+      }
+    });
+
+    freqSlider.addEventListener('input', () => {
+      freqSlider.style.setProperty('accent-color', freqToColor(freq).css);
+    });
+
+    // Init
+    updateUI();
+    startPhotonLoop();
+    lucide.createIcons();
+  </script>
+ </body>
+</html>
