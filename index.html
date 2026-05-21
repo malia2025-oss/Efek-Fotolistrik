@@ -3,393 +3,608 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Efek Fotolistrik Interaktif</title>
+  <title>Radiasi Benda Hitam</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
   <style>
-    html, body { height: 100%; margin: 0; }
-    body { font-family: 'Nunito', sans-serif; box-sizing: border-box; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
+html, body { height: 100%; margin: 0; font-family: 'Outfit', sans-serif; }
+* { box-sizing: border-box; }
 
-    @keyframes photonMove {
-      0% { transform: translateX(-60px); opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { transform: translateX(0px); opacity: 0.3; }
-    }
-    @keyframes electronEscape {
-      0% { transform: translate(0,0); opacity: 1; }
-      100% { transform: translate(var(--ex), var(--ey)); opacity: 0; }
-    }
-    @keyframes electronWiggle {
-      0%,100% { transform: translate(0,0); }
-      25% { transform: translate(2px,-2px); }
-      75% { transform: translate(-2px,2px); }
-    }
-    @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+.app-wrapper {
+  width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden;
+  background: #0a0e1a;
+  color: #e2e8f0;
+}
 
-    .photon-beam {
-      animation: photonMove 1.2s linear infinite;
-    }
-    .electron-escape {
-      animation: electronEscape 1s ease-out forwards;
-    }
-    .electron-wiggle {
-      animation: electronWiggle 0.3s ease-in-out infinite;
-    }
-    .pulse-glow { animation: pulse 2s ease-in-out infinite; }
+.glow-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
 
-    .slider-track::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
-      cursor: pointer; border: 2px solid #fff;
-    }
-    .slider-track::-moz-range-thumb {
-      width: 20px; height: 20px; border-radius: 50%;
-      cursor: pointer; border: 2px solid #fff;
-    }
-    .slider-track { -webkit-appearance: none; height: 6px; border-radius: 3px; outline: none; }
+.slider-track { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer; }
+.slider-track::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 3px solid #0a0e1a; box-shadow: 0 0 10px rgba(99,102,241,0.5); }
+.slider-track::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 3px solid #0a0e1a; }
 
-    .card-glass {
-      background: rgba(15,23,42,0.6);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(100,116,139,0.3);
-    }
-  </style>
+.temp-slider::-webkit-slider-thumb { background: linear-gradient(135deg, #f97316, #ef4444, #3b82f6); }
+.temp-slider::-moz-range-thumb { background: linear-gradient(135deg, #f97316, #ef4444, #3b82f6); }
+.wave-slider::-webkit-slider-thumb { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.wave-slider::-moz-range-thumb { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+
+.temp-slider { background: linear-gradient(90deg, #7c2d12, #dc2626, #3b82f6, #60a5fa); }
+.wave-slider { background: linear-gradient(90deg, #4c1d95, #6366f1, #818cf8); }
+
+canvas { image-rendering: auto; }
+
+.analogy-card {
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.05));
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 14px;
+  padding: 16px 20px;
+  transition: all 0.3s;
+}
+.analogy-card:hover { border-color: rgba(139,92,246,0.4); }
+
+.mode-btn {
+  padding: 8px 18px; border-radius: 10px; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.25s; border: 1px solid transparent;
+}
+.mode-btn.active { background: rgba(99,102,241,0.25); border-color: rgba(99,102,241,0.5); color: #a5b4fc; }
+.mode-btn.inactive { background: rgba(30,41,59,0.5); color: #64748b; }
+.mode-btn.inactive:hover { color: #94a3b8; background: rgba(30,41,59,0.8); }
+
+.object-preview {
+  width: 80px; height: 80px; border-radius: 50%;
+  transition: background 0.4s, box-shadow 0.6s;
+  margin: 0 auto;
+}
+
+.peak-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.25);
+  border-radius: 8px; padding: 6px 12px; font-size: 13px; color: #fbbf24;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+@keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+.fade-up { animation: fadeUp 0.5s ease forwards; }
+
+.info-tooltip {
+  position: relative; cursor: help; display: inline-flex; align-items: center;
+}
+.info-tooltip .tip-text {
+  visibility: hidden; opacity: 0; position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%); background: #1e293b; border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 10px; padding: 10px 14px; font-size: 12px; width: 220px;
+  text-align: left; line-height: 1.5; z-index: 50; transition: opacity 0.2s; color: #cbd5e1;
+  pointer-events: none;
+}
+.info-tooltip:hover .tip-text { visibility: visible; opacity: 1; }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
  </head>
- <body class="h-full overflow-auto" style="background: #0a0e1a;">
-  <div id="app" class="w-full min-h-full" style="background: linear-gradient(135deg, #0a0e1a 0%, #111827 40%, #0f172a 100%);">
-   <header class="text-center py-5 px-4">
-    <h1 id="mainTitle" class="text-3xl md:text-4xl font-extrabold" style="color:#38bdf8;">Efek Fotolistrik</h1>
-    <p class="mt-1 text-sm" style="color:#94a3b8;">Simulasi interaktif — geser slider untuk mengeksplorasi!</p>
-   </header>
-   <div class="max-w-7xl mx-auto px-4 pb-10 grid grid-cols-1 lg:grid-cols-3 gap-5">
+ <body>
+  <div class="app-wrapper" id="app">
+   <div class="max-w-5xl mx-auto px-4 py-6 sm:py-10 w-full">
     
-    <div class="space-y-4">
-     <div class="card-glass rounded-xl p-4"><label class="flex items-center gap-2 text-sm font-bold" style="color:#38bdf8;"> <i data-lucide="waves" style="width:16px;height:16px;"></i> Frekuensi Cahaya (f) </label> <input id="freqSlider" type="range" min="3" max="12" step="0.1" value="6" class="slider-track w-full mt-2" style="background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e,#3b82f6,#8b5cf6);">
-      <div class="flex justify-between mt-1"><span id="freqVal" class="mono text-xs" style="color:#e2e8f0;">6.0 × 10¹⁴ Hz</span> <span id="freqColor" class="text-xs" style="color:#94a3b8;">Hijau</span>
-      </div>
-      <div id="wavelengthBar" class="h-2 rounded mt-2" style="background:#22c55e;"></div>
-     </div>
-     
-     <div class="card-glass rounded-xl p-4"><label class="flex items-center gap-2 text-sm font-bold" style="color:#38bdf8;"> <i data-lucide="sun" style="width:16px;height:16px;"></i> Intensitas Cahaya </label> <input id="intSlider" type="range" min="1" max="10" step="1" value="5" class="slider-track w-full mt-2" style="background:linear-gradient(90deg,#334155,#fbbf24);"> <span id="intVal" class="mono text-xs" style="color:#e2e8f0;">5 foton/detik</span>
-     </div>
-     
-     <div class="card-glass rounded-xl p-4"><label class="flex items-center gap-2 text-sm font-bold" style="color:#38bdf8;"> <i data-lucide="shield" style="width:16px;height:16px;"></i> Fungsi Kerja (φ) </label> <input id="wfSlider" type="range" min="1" max="5" step="0.1" value="2.5" class="slider-track w-full mt-2" style="background:linear-gradient(90deg,#065f46,#f59e0b);">
-      <div class="flex justify-between mt-1"><span id="wfVal" class="mono text-xs" style="color:#e2e8f0;">2.50 eV</span> <span id="metalName" class="text-xs" style="color:#94a3b8;">≈ Natrium</span>
-      </div>
-     </div>
-     
-     <button id="playBtn" class="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all" style="background:#38bdf8;color:#0a0e1a;"> <i data-lucide="pause" style="width:16px;height:16px;" id="playIcon"></i> <span id="playLabel">Jeda Animasi</span> </button> 
-     
-     <div id="statusBox" class="card-glass rounded-xl p-4 text-center">
-      <div id="statusIcon" class="text-4xl mb-1">⚡</div>
-      <div id="statusText" class="font-bold text-sm" style="color:#22c55e;">Elektron Terlepas!</div>
-      <div id="keText" class="mono text-xs mt-1" style="color:#e2e8f0;">KE<sub>maks</sub> = 0.00 eV</div>
-      <div id="threshText" class="text-xs mt-1" style="color:#94a3b8;">f₀ = 0.00 × 10¹⁴ Hz</div>
-     </div>
+    <div class="text-center mb-8 fade-up">
+     <h1 id="mainTitle" class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-orange-400 via-rose-400 to-indigo-400 bg-clip-text text-transparent leading-tight">Radiasi Benda Hitam</h1>
+     <p class="text-slate-400 mt-2 text-sm sm:text-base">Jelajahi bagaimana benda memancarkan cahaya berdasarkan suhunya</p>
     </div>
-    
-    <div class="card-glass rounded-xl p-3 flex flex-col items-center justify-center" style="min-height:380px;">
-     <svg id="simSvg" viewBox="0 0 400 320" class="w-full" style="max-width:400px;">
-      <circle id="lightSource" cx="50" cy="100" r="22" fill="#22c55e" opacity="0.8" /> 
-      <text x="50" y="105" text-anchor="middle" fill="#0a0e1a" font-size="11" font-weight="700">hf</text> 
-      <g id="photonBeams"></g> 
-      <rect x="220" y="40" width="60" height="240" rx="8" fill="#334155" stroke="#475569" stroke-width="2" /> 
-      <text x="250" y="170" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600" transform="rotate(-90,250,170)">LOGAM</text> 
-      <g id="surfaceElectrons"></g> 
-      <g id="escapedElectrons"></g> 
-      <rect x="340" y="40" width="16" height="240" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1" /> 
-      <rect id="energyBar" x="342" y="280" width="12" height="0" rx="3" fill="#38bdf8" /> 
-      <text x="348" y="35" text-anchor="middle" fill="#94a3b8" font-size="8">E</text> 
-      <line id="threshLine" x1="338" y1="200" x2="358" y2="200" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,2" /> 
-      <text id="threshLabel" x="360" y="203" fill="#ef4444" font-size="7">φ</text>
-     </svg>
-     <p class="text-xs mt-1 text-center" style="color:#64748b;">Foton (kiri) → Logam (tengah) → Elektron (kanan)</p>
+
+    <div class="flex gap-2 p-1 bg-slate-900/60 border border-slate-800/80 rounded-xl mb-6 fade-up" style="animation-delay:0.05s">
+     <button id="tabBtn-petunjuk" onclick="switchTab('petunjuk')" class="mode-btn active flex-1 text-center flex items-center justify-center gap-2 py-2.5">
+       <i data-lucide="book-open" style="width:16px;height:16px"></i> Petunjuk Penggunaan
+     </button>
+     <button id="tabBtn-simulasi" onclick="switchTab('simulasi')" class="mode-btn inactive flex-1 text-center flex items-center justify-center gap-2 py-2.5">
+       <i data-lucide="sliders" style="width:16px;height:16px"></i> Simulasi
+     </button>
+     <button id="tabBtn-teori" onclick="switchTab('teori')" class="mode-btn inactive flex-1 text-center flex items-center justify-center gap-2 py-2.5">
+       <i data-lucide="graduation-cap" style="width:16px;height:16px"></i> Teori
+     </button>
     </div>
-    
-    <div class="space-y-4">
-     <div class="card-glass rounded-xl p-4">
-      <h3 class="text-sm font-bold mb-2" style="color:#38bdf8;">📈 KE<sub>maks</sub> vs Frekuensi</h3>
-      <svg id="graphSvg" viewBox="0 0 280 200" class="w-full">
-       <line x1="40" y1="170" x2="270" y2="170" stroke="#475569" stroke-width="1" /> 
-       <line x1="40" y1="10" x2="40" y2="170" stroke="#475569" stroke-width="1" /> 
-       <text x="155" y="195" text-anchor="middle" fill="#94a3b8" font-size="9">f (×10¹⁴ Hz)</text> 
-       <text x="12" y="90" fill="#94a3b8" font-size="9" transform="rotate(-90,12,90)">KE (eV)</text> 
-       <g id="graphTicks"></g> 
-       <line id="keLine" x1="40" y1="170" x2="270" y2="10" stroke="#38bdf8" stroke-width="2" /> 
-       <circle id="threshDot" cx="100" cy="170" r="5" fill="#ef4444" /> 
-       <text id="threshDotLabel" x="100" y="185" text-anchor="middle" fill="#ef4444" font-size="8">f₀</text> 
-       <circle id="currentDot" cx="150" cy="100" r="6" fill="#fbbf24" stroke="#fff" stroke-width="1.5" /> 
-       <rect id="noEmitZone" x="40" y="10" width="60" height="160" fill="#ef4444" opacity="0.08" />
-      </svg>
-     </div>
-     
-     <div class="card-glass rounded-xl p-4">
-      <h3 id="analogyTitle" class="text-sm font-bold mb-2" style="color:#fbbf24;">💡 Analogi Sederhana</h3>
-      <p class="text-xs leading-relaxed" style="color:#cbd5e1;">Bayangkan sebuah <strong style="color:#fbbf24;">bola di dalam lubang</strong>. Bola hanya bisa keluar jika mendapat <strong style="color:#38bdf8;">satu tendangan</strong> yang cukup kuat (frekuensi tinggi).</p>
-      <p class="text-xs leading-relaxed mt-2" style="color:#cbd5e1;"><strong style="color:#ef4444;">100 tendangan lemah</strong> (intensitas tinggi, frekuensi rendah) <strong>tidak akan</strong> mengeluarkan bola — energi tidak menumpuk!</p>
-      <p class="text-xs leading-relaxed mt-2" style="color:#cbd5e1;"><strong style="color:#22c55e;">1 tendangan kuat</strong> (frekuensi tinggi) sudah cukup. Lebih banyak tendangan kuat = lebih banyak bola keluar, tapi kecepatan tiap bola sama.</p>
-      <div class="mt-3 p-2 rounded-lg text-xs text-center font-bold" style="background:rgba(56,189,248,0.1);color:#38bdf8;">
-       KE<sub>maks</sub> = hf − φ &nbsp;(Einstein, 1905)
+
+    <div id="tabContent-petunjuk" class="space-y-4 fade-up">
+      <div class="glow-card p-6">
+        <h3 class="text-lg font-bold text-indigo-300 mb-4 flex items-center gap-2">
+          <i data-lucide="help-circle" class="text-indigo-400"></i> Cara Menggunakan Simulasi Ini
+        </h3>
+        <div class="space-y-4 text-sm text-slate-300 leading-relaxed">
+          <div class="flex gap-3 items-start p-3 rounded-lg bg-slate-900/40 border border-slate-800">
+            <span class="bg-orange-500/20 text-orange-400 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+            <div>
+              <strong class="text-orange-300 block mb-0.5">Atur Slider Suhu (🌡️)</strong>
+              Geser penggeser temperatur untuk melihat bagaimana radiasi berubah dari suhu dingin (seperti lilin) menuju suhu ekstrem (seperti bintang biru raksasa). Perhatikan pergeseran kurva spektrum gelombangnya.
+            </div>
+          </div>
+          <div class="flex gap-3 items-start p-3 rounded-lg bg-slate-900/40 border border-slate-800">
+            <span class="bg-violet-500/20 text-violet-400 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+            <div>
+              <strong class="text-violet-300 block mb-0.5">Sesuaikan Rentang Panjang Gelombang (🔎)</strong>
+              Gunakan fungsi zoom ini untuk mengatur batas maksimum sumbu X pada grafik. Fokuskan pada rentang cahaya tampak atau perluas hingga area inframerah.
+            </div>
+          </div>
+          <div class="flex gap-3 items-start p-3 rounded-lg bg-slate-900/40 border border-slate-800">
+            <span class="bg-indigo-500/20 text-indigo-400 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+            <div>
+              <strong class="text-indigo-300 block mb-0.5">Ubah Skala Intensitas (📊)</strong>
+              Ganti orientasi grafik antara <strong>Linear</strong> untuk melihat bentuk asli energi radiasi yang melonjak tinggi, atau <strong>Logaritmik</strong> jika ingin mendeteksi radiasi sekecil apa pun di tiap panjang gelombang.
+            </div>
+          </div>
+          <div class="flex gap-3 items-start p-3 rounded-lg bg-slate-900/40 border border-slate-800">
+            <span class="bg-amber-500/20 text-amber-400 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</span>
+            <div>
+              <strong class="text-amber-300 block mb-0.5">Amati Perubahan Fisik Benda (🎯)</strong>
+              Perhatikan lingkaran <strong>"Warna Benda"</strong> yang mensimulasikan rona empiris objek pijar asli, serta lencana status yang menampilkan titik puncak spektrum energi pancaran ($\lambda_{\text{maks}}$).
+            </div>
+          </div>
+        </div>
       </div>
-     </div>
-     
-     <div id="insightBox" class="card-glass rounded-xl p-4">
-      <h3 class="text-sm font-bold mb-1" style="color:#a78bfa;">🔑 Insight Utama</h3>
-      <p id="insightText" class="text-xs leading-relaxed" style="color:#cbd5e1;">Geser slider frekuensi dan intensitas untuk melihat perbedaannya!</p>
-     </div>
     </div>
+
+    <div id="tabContent-simulasi" class="hidden space-y-6">
+      <div class="analogy-card fade-up" style="animation-delay:0.1s">
+       <div class="flex items-start gap-3"><span class="text-2xl mt-0.5">🔥</span>
+        <div>
+         <h3 id="analogyTitle" class="font-semibold text-indigo-300 mb-1 text-sm">Bayangkan Seperti Ini...</h3>
+         <p id="analogyText" class="text-slate-400 text-sm leading-relaxed">Bayangkan besi yang dipanaskan di tungku. Awalnya gelap, lalu <strong class="text-red-400">merah membara</strong>, kemudian <strong class="text-orange-300">oranye terang</strong>, dan jika sangat panas menjadi <strong class="text-blue-300">putih kebiruan</strong> — seperti bintang di langit! Grafik di bawah menunjukkan "resep cahaya" yang dipancarkan: warna apa saja dan seberapa terang.</p>
+        </div>
+       </div>
+      </div>
+
+      <div class="glow-card p-5 fade-up" style="animation-delay:0.15s">
+       <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-5 items-start">
+        <div class="space-y-5">
+         <div>
+          <div class="flex items-center justify-between mb-2"><label class="text-sm font-medium text-slate-300 flex items-center gap-2"> 🌡️ Suhu <span class="info-tooltip"> <i data-lucide="info" style="width:14px;height:14px;color:#6366f1"></i> <span class="tip-text">Seperti memutar kompor: makin panas, cahaya bergeser dari merah ke biru dan makin terang</span> </span> </label> <span id="tempValue" class="mono text-sm font-medium text-orange-300">5000 K</span>
+          </div><input type="range" id="tempSlider" class="slider-track temp-slider" min="1000" max="15000" value="5000" step="100">
+          <div class="flex justify-between text-xs text-slate-500 mt-1"><span>🕯️ Lilin</span><span>☀️ Matahari</span><span>⭐ Bintang Panas</span>
+          </div>
+         </div>
+         <div>
+          <div class="flex items-center justify-between mb-2"><label class="text-sm font-medium text-slate-300 flex items-center gap-2"> 🔎 Rentang Panjang Gelombang <span class="info-tooltip"> <i data-lucide="info" style="width:14px;height:14px;color:#6366f1"></i> <span class="tip-text">Seperti zoom kamera: perkecil untuk lihat gambaran besar, perbesar untuk lihat detail warna tertentu</span> </span> </label> <span id="waveValue" class="mono text-sm font-medium text-violet-300">0 – 3000 nm</span>
+          </div><input type="range" id="waveSlider" class="slider-track wave-slider" min="500" max="5000" value="3000" step="100">
+          <div class="flex justify-between text-xs text-slate-500 mt-1"><span>Fokus Cahaya Tampak</span><span>Hingga Inframerah</span>
+          </div>
+         </div>
+         <div>
+          <div class="flex items-center gap-2 mb-2"><label class="text-sm font-medium text-slate-300">📊 Skala Intensitas</label> <span class="info-tooltip"> <i data-lucide="info" style="width:14px;height:14px;color:#6366f1"></i> <span class="tip-text">Linear = penggaris biasa. Logaritmik = kaca pembesar untuk melihat cahaya yang sangat redup sekaligus yang sangat terang</span> </span>
+          </div>
+          <div class="flex gap-2"><button id="btnLinear" class="mode-btn active" onclick="setScale('linear')">Linear</button> <button id="btnLog" class="mode-btn inactive" onclick="setScale('log')">Logaritmik</button>
+          </div>
+         </div>
+        </div>
+        <div class="flex flex-col items-center gap-3 min-w-[130px]">
+         <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Warna Benda</div>
+         <div id="objectPreview" class="object-preview"></div>
+         <div id="objectLabel" class="text-xs text-slate-400 text-center mono">~5000 K</div>
+         <div id="objectAnalogy" class="text-xs text-slate-500 text-center">☀️ Seperti Matahari</div>
+        </div>
+       </div>
+      </div>
+
+      <div class="glow-card p-4 sm:p-5 fade-up" style="animation-delay:0.2s">
+       <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 class="text-sm font-semibold text-slate-300">Spektrum Intensitas Gelombang</h2>
+        <div id="peakBadge" class="peak-badge"><i data-lucide="target" style="width:14px;height:14px"></i> <span id="peakText" class="mono">Puncak: 580 nm</span>
+        </div>
+       </div>
+       <canvas id="chart" style="width:100%;height:340px;"></canvas>
+       <div class="mt-3 flex items-center gap-2"><span class="text-xs text-slate-500">380</span>
+        <div style="flex:1;height:10px;border-radius:5px;background:linear-gradient(90deg,#8b00ff,#4400ff,#0044ff,#00ccff,#00ff44,#ffff00,#ff8800,#ff0000);"></div><span class="text-xs text-slate-500">780 nm</span> <span class="text-xs text-slate-600 ml-1">← Cahaya tampak →</span>
+       </div>
+      </div>
+    </div>
+
+    <div id="tabContent-teori" class="hidden space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-up" style="animation-delay:0.1s">
+       <div class="analogy-card">
+        <div class="text-lg mb-1">🎵</div>
+        <h4 class="text-sm font-semibold text-indigo-300 mb-1">Analogi Musik</h4>
+        <p class="text-xs text-slate-400 leading-relaxed">Suhu = volume musik. Panjang gelombang = nada. Benda dingin memainkan nada bass pelan (inframerah). Benda panas memainkan semua nada keras, puncak di nada tinggi (biru)!</p>
+       </div>
+       <div class="analogy-card">
+        <div class="text-lg mb-1">📐</div>
+        <h4 class="text-sm font-semibold text-indigo-300 mb-1">Hukum Wien</h4>
+        <p class="text-xs text-slate-400 leading-relaxed">Puncak kurva bergeser ke kiri (gelombang pendek) saat suhu naik. Rumurnya: $\lambda_{\text{maks}} = 2.898 \times 10^6 / T$. Makin panas benda, maka gelombangnya makin bergeser ke spektrum warna biru!</p>
+       </div>
+       <div class="analogy-card">
+        <div class="text-lg mb-1">📈</div>
+        <h4 class="text-sm font-semibold text-indigo-300 mb-1">Hukum Stefan-Boltzmann</h4>
+        <p class="text-xs text-slate-400 leading-relaxed">Total energi naik sangat cepat: $E \propto T^4$. Dua kali lipat suhu = 16× lebih terang! Itulah mengapa bintang biru jauh lebih terang dari bintang merah.</p>
+       </div>
+      </div>
+      
+      <div class="glow-card p-6 text-center text-xs text-slate-400 leading-relaxed fade-up" style="animation-delay:0.15s">
+        <p class="mb-2 font-medium text-indigo-300">Persamaan Hukum Radiasi Planck</p>
+        <div class="text-sm text-slate-300 my-3 font-mono">
+          $$B(\lambda,T) = \frac{2hc^2}{\lambda^5} \times \frac{1}{e^{\frac{hc}{\lambda k T}} - 1}$$
+        </div>
+        <p class="text-slate-500 text-[11px] mt-2">
+          Keterangan: $h$ (Konstanta Planck), $c$ (Kecepatan Cahaya), $k$ (Konstanta Boltzmann), $T$ (Suhu Mutlak K), $\lambda$ (Panjang Gelombang).
+        </p>
+      </div>
+    </div>
+
    </div>
   </div>
 
   <script>
-    // Constants
-    const h = 6.626e-34; // Planck's constant
-    const eV = 1.602e-19; // electron volt in joules
-    const hEv = 4.136e-15; // h in eV·s
+// --- Constants ---
+const h = 6.626e-34, c = 3e8, k = 1.381e-23;
+let temperature = 5000, waveMax = 3000, scaleMode = 'linear';
+let animTemp = 5000, animWaveMax = 3000;
+let currentData = [];
 
-    // State
-    let freq = 6, intensity = 5, workFunc = 2.5;
-    let playing = true;
-    let photonTimers = [];
-
-    // DOM refs
-    const freqSlider = document.getElementById('freqSlider');
-    const intSlider = document.getElementById('intSlider');
-    const wfSlider = document.getElementById('wfSlider');
-    const freqVal = document.getElementById('freqVal');
-    const intVal = document.getElementById('intVal');
-    const wfVal = document.getElementById('wfVal');
-    const freqColor = document.getElementById('freqColor');
-    const metalName = document.getElementById('metalName');
-    const wavelengthBar = document.getElementById('wavelengthBar');
-    const statusText = document.getElementById('statusText');
-    const statusIcon = document.getElementById('statusIcon');
-    const keText = document.getElementById('keText');
-    const threshText = document.getElementById('threshText');
-    const playBtn = document.getElementById('playBtn');
-    const playIcon = document.getElementById('playIcon');
-    const playLabel = document.getElementById('playLabel');
-    const insightText = document.getElementById('insightText');
-
-    // Frequency to color mapping
-    function freqToColor(f) {
-      if (f < 4.3) return { color: '#ef4444', name: 'Inframerah', css: '#ef4444' };
-      if (f < 5.0) return { color: '#ef4444', name: 'Merah', css: '#ef4444' };
-      if (f < 5.3) return { color: '#f97316', name: 'Jingga', css: '#f97316' };
-      if (f < 5.8) return { color: '#eab308', name: 'Kuning', css: '#eab308' };
-      if (f < 6.2) return { color: '#22c55e', name: 'Hijau', css: '#22c55e' };
-      if (f < 6.7) return { color: '#06b6d4', name: 'Cyan', css: '#06b6d4' };
-      if (f < 7.5) return { color: '#3b82f6', name: 'Biru', css: '#3b82f6' };
-      if (f < 8.0) return { color: '#8b5cf6', name: 'Violet', css: '#8b5cf6' };
-      return { color: '#a855f7', name: 'Ultraviolet', css: '#c084fc' };
+// --- Tab System Configuration ---
+function switchTab(tabId) {
+  const tabs = ['petunjuk', 'simulasi', 'teori'];
+  
+  tabs.forEach(id => {
+    const contentEl = document.getElementById(`tabContent-${id}`);
+    const btnEl = document.getElementById(`tabBtn-${id}`);
+    
+    if (id === tabId) {
+      contentEl.classList.remove('hidden');
+      btnEl.classList.remove('inactive');
+      btnEl.classList.add('active');
+    } else {
+      contentEl.classList.add('hidden');
+      btnEl.classList.remove('active');
+      btnEl.classList.add('inactive');
     }
+  });
 
-    function metalForWF(w) {
-      if (w < 1.5) return 'Cesium';
-      if (w < 2.0) return 'Kalium';
-      if (w < 2.8) return 'Natrium';
-      if (w < 3.5) return 'Kalsium';
-      if (w < 4.3) return 'Tembaga';
-      return 'Platinum';
+  // Re-render and resize chart container if moving into simulation tab
+  if (tabId === 'simulasi') {
+    setTimeout(() => {
+      resizeCanvas();
+      updateUI();
+    }, 50);
+  }
+}
+
+// --- Planck's Law ---
+function planck(lambdaNm, T) {
+  const lam = lambdaNm * 1e-9;
+  const a = 2 * h * c * c / Math.pow(lam, 5);
+  const exp = (h * c) / (lam * k * T);
+  if (exp > 500) return 0;
+  return a / (Math.exp(exp) - 1);
+}
+
+// --- Wavelength to RGB ---
+function wavToRGB(nm) {
+  let r=0,g=0,b=0;
+  if(nm>=380&&nm<440){r=-(nm-440)/(440-380);b=1;}
+  else if(nm>=440&&nm<490){g=(nm-440)/(490-440);b=1;}
+  else if(nm>=490&&nm<510){g=1;b=-(nm-510)/(510-490);}
+  else if(nm>=510&&nm<580){r=(nm-510)/(580-510);g=1;}
+  else if(nm>=580&&nm<645){r=1;g=-(nm-645)/(645-580);}
+  else if(nm>=645&&nm<=780){r=1;}
+  let f=1;
+  if(nm>=380&&nm<420)f=0.3+0.7*(nm-380)/(420-380);
+  else if(nm>700&&nm<=780)f=0.3+0.7*(780-nm)/(780-700);
+  else if(nm<380||nm>780)f=0;
+  return [r*f,g*f,b*f];
+}
+
+// --- Blackbody color approximation ---
+function bbColor(T) {
+  const t=T/100;let r,g,b;
+  if(t<=66){r=255;g=Math.min(255,Math.max(0,99.4708*Math.log(t)-161.1196));}
+  else{r=Math.min(255,Math.max(0,329.698*Math.pow(t-60,-0.1332)));g=Math.min(255,Math.max(0,288.1221*Math.pow(t-60,-0.0755)));}
+  if(t>=66)b=255;
+  else if(t<=19)b=0;
+  else b=Math.min(255,Math.max(0,138.5177*Math.log(t-10)-305.0448));
+  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+}
+
+function getAnalogy(T) {
+  if(T<1500) return '🕯️ Seperti bara api redup';
+  if(T<2500) return '🕯️ Seperti lilin menyala';
+  if(T<3500) return '💡 Seperti lampu pijar';
+  if(T<4500) return '🌅 Seperti matahari terbit';
+  if(T<6000) return '☀️ Seperti Matahari siang';
+  if(T<8000) return '⭐ Seperti bintang putih';
+  if(T<11000) return '💎 Seperti bintang biru-putih';
+  return '🔵 Seperti bintang biru raksasa';
+}
+
+// --- Canvas Drawing ---
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return; // Prevent calculating if hidden
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+}
+
+function drawChart(T, maxWave) {
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width;
+  const H = rect.height;
+  if (W === 0 || H === 0) return;
+
+  const pad = {l:55, r:15, t:15, b:35};
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Compute data
+  const steps = Math.min(400, Math.max(150, Math.round(cw)));
+  const data = [];
+  let maxI = 0;
+  for(let i=0;i<=steps;i++){
+    const lam = 10 + (maxWave-10)*(i/steps);
+    const intensity = planck(lam, T);
+    data.push({lam, intensity});
+    if(intensity > maxI) maxI = intensity;
+  }
+  currentData = data;
+
+  if(maxI === 0) maxI = 1;
+  const logMin = scaleMode==='log' ? Math.log10(Math.max(maxI*1e-8, 1e-20)) : 0;
+  const logMax = scaleMode==='log' ? Math.log10(maxI) : maxI;
+
+  function yPos(val) {
+    if(scaleMode==='log') {
+      const lv = Math.log10(Math.max(val, Math.pow(10, logMin)));
+      return pad.t + ch - ((lv - logMin)/(logMax - logMin))*ch;
     }
+    return pad.t + ch - (val/maxI)*ch;
+  }
+  function xPos(lam) { return pad.l + (lam-10)/(maxWave-10)*cw; }
 
-    function computePhysics() {
-      const photonEnergy = hEv * freq * 1e14; // eV
-      const threshFreq = workFunc / hEv / 1e14; // ×10¹⁴ Hz
-      const ke = Math.max(0, photonEnergy - workFunc);
-      const emitting = photonEnergy >= workFunc;
-      return { photonEnergy, threshFreq, ke, emitting };
+  // Visible spectrum band
+  const v1 = Math.max(xPos(380), pad.l), v2 = Math.min(xPos(780), pad.l+cw);
+  if(v2 > v1) {
+    const grad = ctx.createLinearGradient(v1,0,v2,0);
+    grad.addColorStop(0,'rgba(139,0,255,0.06)');
+    grad.addColorStop(0.2,'rgba(0,80,255,0.06)');
+    grad.addColorStop(0.4,'rgba(0,255,100,0.06)');
+    grad.addColorStop(0.6,'rgba(255,255,0,0.06)');
+    grad.addColorStop(0.8,'rgba(255,140,0,0.06)');
+    grad.addColorStop(1,'rgba(255,0,0,0.06)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(v1, pad.t, v2-v1, ch);
+  }
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(100,116,139,0.12)';
+  ctx.lineWidth = 0.5;
+  for(let i=0;i<=5;i++){
+    const y = pad.t + ch*i/5;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+  }
+  for(let i=0;i<=5;i++){
+    const x = pad.l + cw*i/5;
+    ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ch); ctx.stroke();
+  }
+
+  // Curve fill
+  ctx.beginPath();
+  ctx.moveTo(xPos(data[0].lam), pad.t+ch);
+  for(const d of data) ctx.lineTo(xPos(d.lam), yPos(d.intensity));
+  ctx.lineTo(xPos(data[data.length-1].lam), pad.t+ch);
+  ctx.closePath();
+  const fillGrad = ctx.createLinearGradient(pad.l,0,pad.l+cw,0);
+  fillGrad.addColorStop(0,'rgba(139,92,246,0.15)');
+  fillGrad.addColorStop(0.3,'rgba(59,130,246,0.12)');
+  fillGrad.addColorStop(0.6,'rgba(251,191,36,0.1)');
+  fillGrad.addColorStop(1,'rgba(239,68,68,0.08)');
+  ctx.fillStyle = fillGrad;
+  ctx.fill();
+
+  // Colored curve segments
+  ctx.lineWidth = 2.5;
+  for(let i=1;i<data.length;i++){
+    const lam = (data[i-1].lam+data[i].lam)/2;
+    const [r,g,b] = wavToRGB(lam);
+    if(lam>=380 && lam<=780) {
+      ctx.strokeStyle = `rgba(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)},0.95)`;
+    } else {
+      ctx.strokeStyle = lam < 380 ? 'rgba(160,130,255,0.5)' : 'rgba(255,100,80,0.4)';
     }
+    ctx.beginPath();
+    ctx.moveTo(xPos(data[i-1].lam), yPos(data[i-1].intensity));
+    ctx.lineTo(xPos(data[i].lam), yPos(data[i].intensity));
+    ctx.stroke();
+  }
 
-    // Update UI
-    function updateUI() {
-      const fc = freqToColor(freq);
-      const physics = computePhysics();
+  // Peak marker
+  const peakLam = 2.898e6 / T;
+  if(peakLam > 10 && peakLam < maxWave) {
+    const px = xPos(peakLam), py = yPos(planck(peakLam, T));
+    ctx.setLineDash([4,4]);
+    ctx.strokeStyle = 'rgba(251,191,36,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t+ch); ctx.stroke();
+    ctx.setLineDash([]);
 
-      freqVal.textContent = `${freq.toFixed(1)} × 10¹⁴ Hz`;
-      freqColor.textContent = fc.name;
-      wavelengthBar.style.background = fc.css;
-      intVal.textContent = `${intensity} foton/detik`;
-      wfVal.textContent = `${workFunc.toFixed(2)} eV`;
-      metalName.textContent = `≈ ${metalForWF(workFunc)}`;
+    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#fbbf24'; ctx.fill();
+    ctx.strokeStyle = '#0a0e1a'; ctx.lineWidth = 2; ctx.stroke();
+  }
 
-      // Light source color
-      document.getElementById('lightSource').setAttribute('fill', fc.css);
+  // Axes labels
+  ctx.fillStyle = '#64748b'; ctx.font = '11px "JetBrains Mono"'; ctx.textAlign = 'center';
+  for(let i=0;i<=5;i++){
+    const lam = Math.round(10 + (maxWave-10)*i/5);
+    ctx.fillText(lam+'', pad.l+cw*i/5, pad.t+ch+20);
+  }
+  ctx.fillText('Panjang Gelombang (nm)', pad.l+cw/2, pad.t+ch+33);
 
-      // Status
-      if (physics.emitting) {
-        statusIcon.textContent = '⚡';
-        statusText.textContent = 'Elektron Terlepas!';
-        statusText.style.color = '#22c55e';
-        keText.innerHTML = `KE<sub>maks</sub> = ${physics.ke.toFixed(2)} eV`;
-        insightText.innerHTML = `Energi foton <strong style="color:#38bdf8;">${physics.photonEnergy.toFixed(2)} eV</strong> > fungsi kerja <strong style="color:#fbbf24;">${workFunc.toFixed(2)} eV</strong>. Elektron terlepas dengan KE = ${physics.ke.toFixed(2)} eV. Coba naikkan intensitas — jumlah elektron bertambah tapi KE tetap sama!`;
-      } else {
-        statusIcon.textContent = '🚫';
-        statusText.textContent = 'Tidak Ada Emisi';
-        statusText.style.color = '#ef4444';
-        keText.innerHTML = `KE<sub>maks</sub> = 0 eV`;
-        insightText.innerHTML = `Energi foton <strong style="color:#38bdf8;">${physics.photonEnergy.toFixed(2)} eV</strong> &lt; fungsi kerja <strong style="color:#fbbf24;">${workFunc.toFixed(2)} eV</strong>. Meskipun intensitas tinggi, elektron tidak punya cukup energi untuk lepas. Naikkan frekuensi!`;
-      }
-      threshText.innerHTML = `f₀ = ${physics.threshFreq.toFixed(2)} × 10¹⁴ Hz`;
-
-      // Energy bar in SVG
-      const maxE = 6;
-      const barMaxH = 240;
-      const eBarH = Math.min(barMaxH, (physics.photonEnergy / maxE) * barMaxH);
-      const energyBar = document.getElementById('energyBar');
-      energyBar.setAttribute('y', 280 - eBarH);
-      energyBar.setAttribute('height', eBarH);
-      energyBar.setAttribute('fill', physics.emitting ? '#22c55e' : fc.css);
-
-      // Threshold line
-      const threshY = 280 - (workFunc / maxE) * barMaxH;
-      document.getElementById('threshLine').setAttribute('y1', threshY);
-      document.getElementById('threshLine').setAttribute('y2', threshY);
-      document.getElementById('threshLabel').setAttribute('y', threshY + 3);
-
-      // Surface electrons wiggle
-      updateSurfaceElectrons(physics.emitting);
-
-      // Update graph
-      updateGraph(physics);
+  ctx.textAlign = 'right';
+  for(let i=0;i<=4;i++){
+    const y = pad.t + ch*i/4;
+    let label;
+    if(scaleMode==='log') {
+      const lv = logMax - (logMax-logMin)*i/4;
+      label = '10^'+Math.round(lv);
+    } else {
+      const v = maxI*(1-i/4);
+      if(v>=1e12) label=(v/1e12).toFixed(1)+'T';
+      else if(v>=1e9) label=(v/1e9).toFixed(1)+'G';
+      else if(v>=1e6) label=(v/1e6).toFixed(1)+'M';
+      else label = v.toFixed(0);
     }
+    ctx.fillText(label, pad.l-5, y+4);
+  }
 
-    function updateSurfaceElectrons(emitting) {
-      const g = document.getElementById('surfaceElectrons');
-      if (!g.hasChildNodes()) {
-        for (let i = 0; i < 6; i++) {
-          const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-          c.setAttribute('cx', 225 + Math.random()*50);
-          c.setAttribute('cy', 60 + i * 40);
-          c.setAttribute('r', 4);
-          c.setAttribute('fill', '#fbbf24');
-          g.appendChild(c);
-        }
-      }
-      g.querySelectorAll('circle').forEach(c => {
-        c.setAttribute('class', emitting && playing ? 'electron-wiggle' : '');
-      });
-    }
+  ctx.save(); ctx.translate(12, pad.t+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#64748b'; ctx.font = '10px "JetBrains Mono"';
+  ctx.fillText('Intensitas (W·sr⁻¹·m⁻³)', 0, 0);
+  ctx.restore();
+}
 
-    function updateGraph(physics) {
-      const gx = 40, gy = 170, gw = 230, gh = 160;
-      const fMin = 3, fMax = 12, keMax = 5;
+// --- UI Updates ---
+function updateUI() {
+  const T = Math.round(animTemp);
+  const wm = Math.round(animWaveMax);
 
-      // Ticks
-      const ticksG = document.getElementById('graphTicks');
-      ticksG.innerHTML = '';
-      for (let f = 4; f <= 12; f += 2) {
-        const x = gx + ((f - fMin)/(fMax - fMin)) * gw;
-        const tick = document.createElementNS('http://www.w3.org/2000/svg','text');
-        tick.setAttribute('x', x); tick.setAttribute('y', gy + 14);
-        tick.setAttribute('text-anchor','middle'); tick.setAttribute('fill','#64748b');
-        tick.setAttribute('font-size','8'); tick.textContent = f;
-        ticksG.appendChild(tick);
-      }
-      for (let k = 0; k <= 4; k += 1) {
-        const y = gy - (k / keMax) * gh;
-        const tick = document.createElementNS('http://www.w3.org/2000/svg','text');
-        tick.setAttribute('x', gx - 5); tick.setAttribute('y', y + 3);
-        tick.setAttribute('text-anchor','end'); tick.setAttribute('fill','#64748b');
-        tick.setAttribute('font-size','8'); tick.textContent = k;
-        ticksG.appendChild(tick);
-      }
+  const tempValEl = document.getElementById('tempValue');
+  const waveValEl = document.getElementById('waveValue');
+  if(tempValEl) tempValEl.textContent = T + ' K';
+  if(waveValEl) waveValEl.textContent = '0 – ' + wm + ' nm';
 
-      // KE line
-      const threshF = physics.threshFreq;
-      const x0 = gx + ((threshF - fMin)/(fMax - fMin)) * gw;
-      const keAtMax = hEv * fMax * 1e14 - workFunc;
-      const y1 = gy - (Math.max(0,keAtMax) / keMax) * gh;
-      const keLine = document.getElementById('keLine');
-      keLine.setAttribute('x1', Math.max(gx, x0)); keLine.setAttribute('y1', gy);
-      keLine.setAttribute('x2', gx + gw); keLine.setAttribute('y2', Math.max(gy - gh, y1));
+  const col = bbColor(T);
+  const preview = document.getElementById('objectPreview');
+  if(preview) {
+    preview.style.background = col;
+    const brightness = Math.min(1, T/4000);
+    preview.style.boxShadow = `0 0 ${20+brightness*40}px ${10+brightness*20}px ${col.replace('rgb','rgba').replace(')',`,${brightness*0.5})`)}`;
+  }
 
-      // Threshold dot
-      const threshDot = document.getElementById('threshDot');
-      threshDot.setAttribute('cx', Math.max(gx, x0)); threshDot.setAttribute('cy', gy);
-      document.getElementById('threshDotLabel').setAttribute('x', Math.max(gx, x0));
+  const objLabelEl = document.getElementById('objectLabel');
+  const objAnalogyEl = document.getElementById('objectAnalogy');
+  if(objLabelEl) objLabelEl.textContent = '~' + T + ' K';
+  if(objAnalogyEl) objAnalogyEl.textContent = getAnalogy(T);
 
-      // No-emit zone
-      const noEmitZone = document.getElementById('noEmitZone');
-      noEmitZone.setAttribute('x', gx); noEmitZone.setAttribute('y', gy - gh);
-      noEmitZone.setAttribute('width', Math.max(0, x0 - gx)); noEmitZone.setAttribute('height', gh);
+  const peakNm = Math.round(2.898e6 / T);
+  const peakTextEl = document.getElementById('peakText');
+  if(peakTextEl) peakTextEl.textContent = 'Puncak: ' + peakNm + ' nm';
 
-      // Current point
-      const curX = gx + ((freq - fMin)/(fMax - fMin)) * gw;
-      const curY = gy - (physics.ke / keMax) * gh;
-      const currentDot = document.getElementById('currentDot');
-      currentDot.setAttribute('cx', curX);
-      currentDot.setAttribute('cy', Math.max(gy - gh, curY));
-    }
+  drawChart(T, wm);
+}
 
-    // Photon animation
-    function spawnPhoton() {
-      if (!playing) return;
-      const fc = freqToColor(freq);
-      const physics = computePhysics();
-      const g = document.getElementById('photonBeams');
-      const yPos = 60 + Math.random() * 200;
+function setScale(mode) {
+  scaleMode = mode;
+  document.getElementById('btnLinear').className = 'mode-btn ' + (mode==='linear'?'active':'inactive');
+  document.getElementById('btnLog').className = 'mode-btn ' + (mode==='log'?'active':'inactive');
+  updateUI();
+}
 
-      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx', 220); c.setAttribute('cy', yPos);
-      c.setAttribute('r', 5); c.setAttribute('fill', fc.css); c.setAttribute('opacity','0.9');
-      c.setAttribute('class','photon-beam');
-      g.appendChild(c);
-
-      setTimeout(() => {
-        c.remove();
-        if (physics.emitting && playing) spawnElectron(yPos, physics.ke);
-      }, 1200);
-    }
-
-    function spawnElectron(y, ke) {
-      const g = document.getElementById('escapedElectrons');
-      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      const speed = 30 + ke * 30;
-      c.setAttribute('cx', 285); c.setAttribute('cy', y);
-      c.setAttribute('r', 3); c.setAttribute('fill', '#fbbf24');
-      c.style.setProperty('--ex', `${speed}px`);
-      c.style.setProperty('--ey', `${-20 + Math.random()*40}px`);
-      c.setAttribute('class','electron-escape');
-      g.appendChild(c);
-      setTimeout(() => c.remove(), 1000);
-    }
-
-    function startPhotonLoop() {
-      photonTimers.forEach(clearInterval);
-      photonTimers = [];
-      if (!playing) return;
-      const interval = Math.max(100, 1200 / intensity);
-      photonTimers.push(setInterval(spawnPhoton, interval));
-    }
-
-    // Event listeners
-    freqSlider.addEventListener('input', e => { freq = parseFloat(e.target.value); updateUI(); });
-    intSlider.addEventListener('input', e => { intensity = parseInt(e.target.value); updateUI(); startPhotonLoop(); });
-    wfSlider.addEventListener('input', e => { workFunc = parseFloat(e.target.value); updateUI(); });
-
-    playBtn.addEventListener('click', () => {
-      playing = !playing;
-      playIcon.setAttribute('data-lucide', playing ? 'pause' : 'play');
-      playLabel.textContent = playing ? 'Jeda Animasi' : 'Putar Animasi';
-      lucide.createIcons();
-      startPhotonLoop();
-      if (!playing) {
-        document.getElementById('photonBeams').innerHTML = '';
-        document.getElementById('escapedElectrons').innerHTML = '';
-      }
-    });
-
-    freqSlider.addEventListener('input', () => {
-      freqSlider.style.setProperty('accent-color', freqToColor(freq).css);
-    });
-
-    // Init
+// --- Smooth animation ---
+let rafId;
+function animate() {
+  const ease = 0.12;
+  animTemp += (temperature - animTemp) * ease;
+  animWaveMax += (waveMax - animWaveMax) * ease;
+  if(Math.abs(animTemp-temperature)<1 && Math.abs(animWaveMax-waveMax)<1) {
+    animTemp = temperature; animWaveMax = waveMax;
     updateUI();
-    startPhotonLoop();
-    lucide.createIcons();
-  </script>
- </body>
+    return;
+  }
+  updateUI();
+  rafId = requestAnimationFrame(animate);
+}
+function startAnim() { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(animate); }
+
+document.getElementById('tempSlider').addEventListener('input', e => { temperature = +e.target.value; startAnim(); });
+document.getElementById('waveSlider').addEventListener('input', e => { waveMax = +e.target.value; startAnim(); });
+
+// --- Element SDK ---
+const defaultConfig = {
+  main_title: 'Radiasi Benda Hitam',
+  analogy_title: 'Bayangkan Seperti Ini...',
+  background_color: '#0a0e1a',
+  surface_color: '#0f172ae6',
+  text_color: '#e2e8f0',
+  primary_action_color: '#6366f1',
+  secondary_action_color: '#fbbf24',
+  font_family: 'Outfit',
+  font_size: 16
+};
+
+function applyConfig(config) {
+  const t = config.main_title || defaultConfig.main_title;
+  const a = config.analogy_title || defaultConfig.analogy_title;
+  const bg = config.background_color || defaultConfig.background_color;
+  const sf = config.surface_color || defaultConfig.surface_color;
+  const tx = config.text_color || defaultConfig.text_color;
+  const pa = config.primary_action_color || defaultConfig.primary_action_color;
+  const sa = config.secondary_action_color || defaultConfig.secondary_action_color;
+  const ff = config.font_family || defaultConfig.font_family;
+  const fs = config.font_size || defaultConfig.font_size;
+
+  document.getElementById('mainTitle').textContent = t;
+  document.getElementById('analogyTitle').textContent = a;
+
+  const wrapper = document.getElementById('app');
+  wrapper.style.background = bg;
+  wrapper.style.color = tx;
+  wrapper.style.fontFamily = `${ff}, Outfit, sans-serif`;
+
+  document.querySelectorAll('.glow-card').forEach(el => {
+    el.style.background = sf;
+    el.style.borderColor = pa + '26';
+  });
+
+  document.querySelectorAll('.analogy-card').forEach(el => {
+    el.style.borderColor = pa + '33';
+  });
+
+  document.querySelectorAll('.peak-badge').forEach(el => {
+    el.style.color = sa;
+    el.style.borderColor = sa + '40';
+    el.style.background = sa + '1a';
+  });
+
+  document.getElementById('mainTitle').style.fontSize = `${fs * 2}px`;
+  document.querySelectorAll('p, label, span').forEach(el => {
+    if(!el.closest('.peak-badge') && !el.classList.contains('mono'))
+      el.style.fontSize = `${fs * 0.875}px`;
+  });
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => applyConfig(config),
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get:()=>config.background_color||defaultConfig.background_color, set:(v)=>{config.background_color=v;window.elementSdk.setConfig({background_color:v})} },
+      { get:()=>config.surface_color||defaultConfig.surface_color, set:(v)=>{config.surface_color=v;window.elementSdk.setConfig({surface_color:v})} },
+      { get:()=>config.text_color||defaultConfig.text_color, set:(v)=>{config.text_color=v;window.elementSdk.setConfig({text_color:v})} },
+      { get:()=>config.primary_action_color||defaultConfig.primary_action_color, set:(v)=>{config.primary_action_color=v;window.elementSdk.setConfig({primary_action_color:v})} },
+      { get:()=>config.secondary_action_color||defaultConfig.secondary_action_color, set:(v)=>{config.secondary_action_color=v;window.elementSdk.setConfig({secondary_action_color:v})} },
+    ],
+    borderables: [],
+    fontEditable: { get:()=>config.font_family||defaultConfig.font_family, set:(v)=>{config.font_family=v;window.elementSdk.setConfig({font_family:v})} },
+    fontSizeable: { get:()=>config.font_size||defaultConfig.font_size, set:(v)=>{config.font_size=v;window.elementSdk.setConfig({font_size:v})} },
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ['main_title', config.main_title || defaultConfig.main_title],
+    ['analogy_title', config.analogy_title || defaultConfig.analogy_title],
+  ])
+});
+
+// --- Init ---
+window.addEventListener('resize', () => { resizeCanvas(); updateUI(); });
+resizeCanvas();
+updateUI();
+lucide.createIcons();
+
+// Set default tab on load
+switchTab('petunjuk');
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f1343cb2474acad',t:'MTc3NzAxNDM4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
